@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+
+# python
+__pycache__/
+.mypy_cache/
+
+# build files
+build/
+dist/
+*.c
+*.html
+*.spec
+
+# configs
+.zshrc
+
