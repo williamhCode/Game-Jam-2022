@@ -353,16 +353,17 @@ cdef class Renderer:
         self.quad_vertices[curr_index + 9] = tex_index 
 
 
-    def draw_texture(self, texture: Texture, position, float rotation=0.0, offset=[0.0, 0.0]):
+    def draw_texture(self, texture: Texture, position, float rotation=0.0, offset=[0.0, 0.0], flipped=False):
         cdef unsigned int texture_id = texture.id
         cdef float[2] t_position = [position[0], position[1]]
         cdef float[2] t_size = [texture.width, texture.height]
         cdef float[2] t_offset = [offset[0], offset[1]]
+        cdef bint t_flipped = flipped
 
-        self.cy_draw_texture(texture_id, t_position, t_size, rotation, t_offset)
+        self.cy_draw_texture(texture_id, t_position, t_size, rotation, t_offset, t_flipped)
 
 
-    cdef void cy_draw_texture(self, unsigned int texture_id, float[2] position, float[2] size, float rotation, float[2] offset):
+    cdef void cy_draw_texture(self, unsigned int texture_id, float[2] position, float[2] size, float rotation, float[2] offset, bint flipped):
         if (self.quad_vertex_count >= MAX_VERTEX_COUNT or self.texture_slot_index >= MAX_TEXTURES):
             self._end_quad_batch()
             self._begin_quad_batch()
@@ -400,12 +401,21 @@ cdef class Renderer:
             positions[i][0] += position[0]
             positions[i][1] += position[1]
 
-        cdef float[4][2] tex_coords = [
-            [0, 0],
-            [1, 0],
-            [1, 1],
-            [0, 1]
-        ]
+        cdef float[4][2] tex_coords
+        if (flipped == 0):
+            tex_coords = [
+                [0, 0],
+                [1, 0],
+                [1, 1],
+                [0, 1]
+            ]
+        else:
+            tex_coords = [
+                [1, 0],
+                [0, 0],
+                [0, 1],
+                [1, 1]
+            ]
         
         cdef Py_ssize_t curr_index
         for i in range(4):

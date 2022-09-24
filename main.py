@@ -3,6 +3,7 @@ import pymunk
 
 import math
 import time
+import random
 
 import engine
 from engine.render import Renderer
@@ -10,6 +11,10 @@ from engine.texture import Texture
 
 from src.snowball import Snowball
 from src.player import Player
+from src.jackolantern import JackOLantern
+from src.icecube import IceCube
+from src.hole import Hole
+from src.snow import SnowGrid
 
 
 def main():
@@ -23,7 +28,7 @@ def main():
         pygame.GL_CONTEXT_PROFILE_MASK, pygame.GL_CONTEXT_PROFILE_CORE)
 
     # create window
-    WIN_SIZE = (720, 480)
+    WIN_SIZE = (1280, 720)
     pygame.display.set_mode((WIN_SIZE), pygame.DOUBLEBUF | pygame.OPENGL)
 
     renderer = Renderer()
@@ -32,12 +37,27 @@ def main():
     renderer.set_size(*WIN_SIZE)
 
     # game objects init ---------------------------------------- #
-    space = pymunk.Space()
+    ARENA_SIZE = (1000, 600)
 
-    snowball = Snowball((100, 100), 50, 50)
+    grass_size = 64
+    GRASS_DIM = (int(ARENA_SIZE[0] / grass_size), int(ARENA_SIZE[1] / grass_size))
+    grass_texture = Texture.from_path('src/imgs/Grass.png')
+
+    snow_grid = SnowGrid(ARENA_SIZE)
+
+    space = pymunk.Space()
+    space.collision_bias = (1.0 - 0.5) ** 60
+    snowball = Snowball((100, 100), 50, 1)
     space.add(snowball, snowball.body)
     player = Player((50, 0))
     space.add(player, player.body)
+
+    jackolantern = JackOLantern((800, 600))
+    space.add(jackolantern, jackolantern.body)
+    icecube = IceCube((300, 300))
+    space.add(icecube, icecube.body)
+    hole = Hole((500, 500))
+    space.add(hole, hole.body)
 
     font = pygame.font.SysFont('Comic Sans MS', 30)
 
@@ -47,7 +67,7 @@ def main():
     running = True
     while running:
         # timing -------------------------------------------------- #
-        dt = clock.tick(60)
+        dt = clock.tick()
 
         framerate = clock.get_fps()
         pygame.display.set_caption(f"Running at {framerate :.2f} fps.")
@@ -77,21 +97,36 @@ def main():
         player.move(input)
         player.update(dt)
 
-        space.step(dt)
+        snowball.update(dt)
+        jackolantern.update(dt)
+        icecube.update(dt)
+        hole.update(dt)
+
+        iterations = 5
+        for _ in range(iterations):
+            space.step(dt / iterations)
 
         # blit -------------------------------------------------- #
-        t1 = time.perf_counter()
-        surf = font.render('stuff', False, (0, 0, 0))
-        font_texture = Texture.from_pygame_surface(surf)
-        t2 = time.perf_counter()
-        print(t2 - t1)
+        # surf = font.render('stuff', False, (0, 0, 0))
+        # font_texture = Texture.from_pygame_surface(surf)
 
         renderer.begin()
         renderer.clear()
 
+        # render grass
+        for x in range(GRASS_DIM[0]):
+            for y in range(GRASS_DIM[1]):
+                pos = (x * grass_size, y * grass_size)
+                renderer.draw_texture(grass_texture, pos)
+        
+        snow_grid.draw(renderer)
+
+        hole.draw(renderer)
+
         snowball.draw(renderer)
         player.draw(renderer)
-        renderer.draw_texture(font_texture, (100, 100))
+        jackolantern.draw(renderer)
+        icecube.draw(renderer)
 
         renderer.end()
 
