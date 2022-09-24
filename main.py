@@ -1,6 +1,8 @@
 import pygame
-import math
 import pymunk
+
+import math
+import time
 
 import engine
 from engine.render import Renderer
@@ -36,6 +38,8 @@ def main():
     space.add(snowball, snowball.body)
     player = Player((50, 0))
     space.add(player, player.body)
+
+    font = pygame.font.SysFont('Comic Sans MS', 30)
 
     # game loop -------------------------------------------------- #
     clock = engine.timer.Timer()
@@ -76,11 +80,18 @@ def main():
         space.step(dt)
 
         # blit -------------------------------------------------- #
+        t1 = time.perf_counter()
+        surf = font.render('stuff', False, (0, 0, 0))
+        font_texture = Texture.from_pygame_surface(surf)
+        t2 = time.perf_counter()
+        print(t2 - t1)
+
         renderer.begin()
         renderer.clear()
 
         snowball.draw(renderer)
         player.draw(renderer)
+        renderer.draw_texture(font_texture, (100, 100))
 
         renderer.end()
 
