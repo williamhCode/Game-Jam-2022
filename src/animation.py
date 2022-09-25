@@ -4,16 +4,6 @@ from pathlib import Path
 from enum import Enum
 
 
-def load_textures(base_path: str, name: str, count):
-    textures = []
-    for i in range(count):
-        filename = name + str(i).zfill(4) + ".png"
-        path = Path.joinpath(Path(base_path).resolve(), name, filename)
-        textures.append(Texture.from_path(path))
-
-    return textures
-
-
 class AnimatedSprite:
     
     def __init__(self, textures: list[Texture], frame_time, flipped=False):

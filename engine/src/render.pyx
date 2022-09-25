@@ -74,6 +74,9 @@ cdef class Renderer:
         object line_shader
         list shaders
 
+        # matrices
+        object view_matrix
+
 
     def __init__(self):
         # glEnable(GL_DEPTH_TEST)
@@ -221,19 +224,20 @@ cdef class Renderer:
 
 
     def set_size(self, width: int, height: int):
-        view_matrix = glm.ortho(0, width, 0, height, 0, 1.0)
+        proj_matrix = glm.ortho(0, width, 0, height, 0, 1.0)
         for shader in self.shaders:
             shader.use()
-            shader.set_mat4('u_Proj', view_matrix)
+            shader.set_mat4('u_Proj', proj_matrix)
 
 
     def set_clear_color(self, color):
-        color = [x/255.0 for x in color]
+        color = [x / 255.0 for x in color]
         glClearColor(*color)
 
     
     def clear(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
 
     # begin functions --------------------------------- #
     cdef void _begin_quad_batch(self):
@@ -253,7 +257,12 @@ cdef class Renderer:
         self.line_vertex_count = 0
 
 
-    def begin(self):
+    def begin(self, view_matrix=None):
+        if view_matrix is not None:
+            self.view_matrix = view_matrix
+        else:
+            self.view_matrix = glm.mat4()
+
         self._begin_quad_batch()
         self._begin_circle_batch()
         self._begin_rectangle_batch()
@@ -323,6 +332,10 @@ cdef class Renderer:
 
 
     def end(self):
+        for shader in self.shaders:
+            shader.use()
+            shader.set_mat4('u_View', self.view_matrix)
+
         self._end_quad_batch()
         self._end_circle_batch()
         self._end_rectangle_batch()
@@ -353,24 +366,24 @@ cdef class Renderer:
         self.quad_vertices[curr_index + 9] = tex_index 
 
 
-    def draw_texture(self, texture: Texture, position, float rotation=0.0, offset=[0.0, 0.0], flipped=False):
+    def draw_texture(self, texture: Texture, position, float rotation=0.0, offset=[0.0, 0.0], flipped=False, color=[255, 255, 255, 255]):
         cdef unsigned int texture_id = texture.id
         cdef float[2] t_position = [position[0], position[1]]
         cdef float[2] t_size = [texture.width, texture.height]
         cdef float[2] t_offset = [offset[0], offset[1]]
         cdef bint t_flipped = flipped
+        cdef float[4] t_color
+        self._handle_color(color, t_color)
 
-        self.cy_draw_texture(texture_id, t_position, t_size, rotation, t_offset, t_flipped)
+        self.cy_draw_texture(texture_id, t_position, t_size, rotation, t_offset, t_flipped, t_color)
 
 
-    cdef void cy_draw_texture(self, unsigned int texture_id, float[2] position, float[2] size, float rotation, float[2] offset, bint flipped):
+    cdef void cy_draw_texture(self, unsigned int texture_id, float[2] position, float[2] size, float rotation, float[2] offset, bint flipped, float[4] color):
         if (self.quad_vertex_count >= MAX_VERTEX_COUNT or self.texture_slot_index >= MAX_TEXTURES):
             self._end_quad_batch()
             self._begin_quad_batch()
 
         cdef float rad_rotation = rotation * math.pi / 180.0
-
-        cdef float[4] color = [1.0, 1.0, 1.0, 1.0]
 
         cdef float texture_index = 0.0
         cdef int i

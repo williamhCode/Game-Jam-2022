@@ -9,6 +9,7 @@ import engine
 from engine.render import Renderer
 from engine.texture import Texture
 
+from src.camera import Camera2D
 from src.snowball import Snowball
 from src.player import Player
 from src.jackolantern import JackOLantern
@@ -32,12 +33,15 @@ def main():
     pygame.display.set_mode((WIN_SIZE), pygame.DOUBLEBUF | pygame.OPENGL)
 
     renderer = Renderer()
-    renderer.set_clear_color((100, 100, 100, 255))
+    # renderer.set_clear_color((100, 100, 100, 255))
+    renderer.set_clear_color((200, 200, 200, 255))
 
     renderer.set_size(*WIN_SIZE)
 
+    camera = Camera2D(*WIN_SIZE)
+
     # game objects init ---------------------------------------- #
-    ARENA_SIZE = (1000, 600)
+    ARENA_SIZE = (3840, 2160)
 
     grass_size = 64
     GRASS_DIM = (int(ARENA_SIZE[0] / grass_size), int(ARENA_SIZE[1] / grass_size))
@@ -47,17 +51,18 @@ def main():
 
     space = pymunk.Space()
     space.collision_bias = (1.0 - 0.5) ** 60
-    snowball = Snowball((100, 100), 50, 1)
-    space.add(snowball, snowball.body)
+
+    snowball = Snowball((100, 100), 5, 0.05)
+    space.add(snowball.circle_base, snowball)
     player = Player((50, 0))
-    space.add(player, player.body)
+    space.add(player.poly, player)
 
     jackolantern = JackOLantern((800, 600))
-    space.add(jackolantern, jackolantern.body)
+    space.add(jackolantern.circle, jackolantern)
     icecube = IceCube((300, 300))
-    space.add(icecube, icecube.body)
+    space.add(icecube.circle, icecube)
     hole = Hole((500, 500))
-    space.add(hole, hole.body)
+    space.add(hole.poly, hole)
 
     font = pygame.font.SysFont('Comic Sans MS', 30)
 
@@ -97,7 +102,10 @@ def main():
         player.move(input)
         player.update(dt)
 
+        camera.look_at(player.position)
+
         snowball.update(dt)
+        snow_grid.update_snow(snowball)
         jackolantern.update(dt)
         icecube.update(dt)
         hole.update(dt)
@@ -110,7 +118,7 @@ def main():
         # surf = font.render('stuff', False, (0, 0, 0))
         # font_texture = Texture.from_pygame_surface(surf)
 
-        renderer.begin()
+        renderer.begin(camera.get_transform())
         renderer.clear()
 
         # render grass
@@ -119,12 +127,12 @@ def main():
                 pos = (x * grass_size, y * grass_size)
                 renderer.draw_texture(grass_texture, pos)
         
-        snow_grid.draw(renderer)
+        snow_grid.draw(renderer, camera)
 
         hole.draw(renderer)
 
-        snowball.draw(renderer)
         player.draw(renderer)
+        snowball.draw(renderer)
         jackolantern.draw(renderer)
         icecube.draw(renderer)
 

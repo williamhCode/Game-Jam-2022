@@ -5,37 +5,36 @@ from enum import Enum
 
 from engine.render import Renderer
 from .animation import AnimatedSprite, AnimationState
-from . import animation
+from . import funcs
 
-class IceCube(pymunk.Circle):
+
+class IceCube(pymunk.Body):
     RADIUS = 20
     MASS = 10
     SPEED = 40
     
-    STATE = "player_state"
+    STATE = "state"
     DIRECTION = "direction"
     
     class State(Enum):
         IDLE = 1
         WALKING = 2
-        SHOVELING = 3
 
     class Direction(Enum):
         UP = 1
         DOWN = 2
         RIGHT = 3
         LEFT = 4
-    
 
-    body: pymunk.Body
+    circle: pymunk.Circle
     animation_state = None
     
     def __init__(self, pos: Vec2d):
-        body = pymunk.Body(self.MASS, float('inf'), body_type=pymunk.Body.KINEMATIC)
-        body.position = pos
+        super().__init__(self.MASS, float('inf'), body_type=pymunk.Body.KINEMATIC)
+        self.position = pos
 
-        super().__init__(body, self.RADIUS)
-        self.friction = 0.5
+        self.circle = pymunk.Circle(self, self.RADIUS)
+        self.circle.friction = 0.5
 
         self.base_position = pos
         
@@ -43,10 +42,10 @@ class IceCube(pymunk.Circle):
 
         if IceCube.animation_state == None:
             back_sprites = AnimatedSprite(
-                animation.load_textures("src/imgs/Ice Cubes", "Back", 8), 1 / 12)
+                funcs.load_textures("src/imgs/IceCubes", "Back", 8), 1 / 12)
             front_sprites = AnimatedSprite(
-                animation.load_textures("src/imgs/Ice Cubes", "Front", 8), 1 / 12)
-            left_textures = animation.load_textures("src/imgs/Ice Cubes", "Side", 8)
+                funcs.load_textures("src/imgs/IceCubes", "Front", 8), 1 / 12)
+            left_textures = funcs.load_textures("src/imgs/IceCubes", "Side", 8)
             left_sprites = AnimatedSprite(left_textures, 1 / 12)
             right_sprites = AnimatedSprite(left_textures, 1 / 12, flipped=True)
             
@@ -81,7 +80,7 @@ class IceCube(pymunk.Circle):
             input += 1, 0
         elif (self.curr_direction == self.Direction.LEFT):
             input += -1, 0
-        self.body.velocity = input * self.SPEED
+        self.velocity = input * self.SPEED
 
         self.animation_state.set_state(self.DIRECTION, self.curr_direction)
         self.animation_state.update(dt)
@@ -89,5 +88,5 @@ class IceCube(pymunk.Circle):
         self.time += dt
         
     def draw(self, renderer: Renderer):
-        renderer.draw_circle((219, 241, 253), self.body.position, self.RADIUS)
-        self.animation_state.get_sprite().draw(renderer, self.body.position, offset=-self.position_offset)
+        renderer.draw_circle((219, 241, 253), self.position, self.RADIUS)
+        self.animation_state.get_sprite().draw(renderer, self.position, offset=-self.position_offset)

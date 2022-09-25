@@ -1,11 +1,12 @@
 import pymunk
 from pymunk import Vec2d
 from enum import Enum
+import math
 
 from engine.render import Renderer
 from engine.texture import Texture
 from .animation import AnimatedSprite, AnimationState
-from . import animation
+from . import funcs
 
 
 def move_towards(curr: Vec2d, target: Vec2d, force: float):
@@ -16,15 +17,16 @@ def move_towards(curr: Vec2d, target: Vec2d, force: float):
     return curr + change
 
 
-class Player(pymunk.Circle):
+class Player(pymunk.Body):
     MAX_SPEED = 200
-    ACCELERATION = 500
-    FRICTION = 500
+    ACCELERATION = 1000
+    FRICTION = 2000
 
     MASS = 10
-    RADIUS = 25
+    WIDTH = 30
+    HEIGHT = 18
 
-    STATE = "player_state"
+    STATE = "state"
     DIRECTION = "direction"
 
     class State(Enum):
@@ -38,27 +40,26 @@ class Player(pymunk.Circle):
         RIGHT = 3
         LEFT = 4
 
-    body: pymunk.Body
+    poly: pymunk.Poly
 
     def __init__(self, pos):
-        # physics
-        body = pymunk.Body(self.MASS, float('inf'), body_type=pymunk.Body.DYNAMIC)
-        body.position = pos
+        super().__init__(self.MASS, float('inf'), body_type=pymunk.Body.DYNAMIC)
+        self.position = pos
 
-        super().__init__(body, self.RADIUS)
-        self.friction = 0.5
+        self.poly = pymunk.Poly(self, funcs.generate_ellipse_points(self.WIDTH, self.HEIGHT, 20))
+        self.poly.friction = 2.0
 
         # variables
         self.input = Vec2d.zero()
 
         back_sprites = AnimatedSprite(
-            animation.load_textures("src/imgs/Player", "Back", 8), 1 / 12)
+            funcs.load_textures("src/imgs/Player", "Back", 8), 1 / 12)
         front_sprites = AnimatedSprite(
-            animation.load_textures("src/imgs/Player", "Front", 8), 1 / 12)
-        right_textures = animation.load_textures("src/imgs/Player", "Side", 8)
+            funcs.load_textures("src/imgs/Player", "Front", 8), 1 / 12)
+        right_textures = funcs.load_textures("src/imgs/Player", "Side", 8)
         right_sprites = AnimatedSprite(right_textures, 1 / 12)
         left_sprites = AnimatedSprite(right_textures, 1 / 12, flipped=True)
-        
+
         self.animation_state = AnimationState((self.STATE, self.DIRECTION))
         self.animation_state.add_sprite(back_sprites, (self.State.WALKING, self.Direction.UP))
         self.animation_state.add_sprite(front_sprites, (self.State.WALKING, self.Direction.DOWN))
@@ -69,8 +70,7 @@ class Player(pymunk.Circle):
         self.animation_state.set_state(self.DIRECTION, self.Direction.DOWN)
 
         temp_sprite = front_sprites.textures[0]
-        width = 128, 192
-        self.position_offset = Vec2d(temp_sprite.width / 2, 20)
+        self.position_offset = Vec2d(temp_sprite.width / 2, 30)
 
     def move(self, input: Vec2d):
         self.input = input.normalized()
@@ -85,19 +85,18 @@ class Player(pymunk.Circle):
 
     def _apply_input(self, dt):
         if self.input == Vec2d.zero():
-            self.body.velocity = move_towards(self.body.velocity, Vec2d.zero(), self.FRICTION * dt)
+            self.velocity = move_towards(self.velocity, Vec2d.zero(), self.FRICTION * dt)
         else:
-            self.body.velocity = move_towards(
-                self.body.velocity, self.input * self.MAX_SPEED, self.ACCELERATION * dt)
+            self.velocity = move_towards(
+                self.velocity, self.input * self.MAX_SPEED, self.ACCELERATION * dt)
 
     def update(self, dt):
         self._apply_input(dt)
-        self.body.position += self.body.velocity * dt
+        self.position += self.velocity * dt
         self.animation_state.update(dt)
 
     def draw(self, renderer: Renderer):
-        renderer.draw_circle(
-            (200, 20, 20), self.body.position, self.radius, 0)
+        renderer.draw_lines(
+            (200, 20, 20), [v + self.position for v in self.poly.get_vertices()], 3)
 
-        self.animation_state.get_sprite().draw(renderer, self.body.position, offset=-self.position_offset)
-
+        self.animation_state.get_sprite().draw(renderer, self.position, offset=-self.position_offset)
