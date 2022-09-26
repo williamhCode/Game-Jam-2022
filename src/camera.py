@@ -20,8 +20,8 @@ class Camera2D:
         self.half_screen_size = glm.vec2(width / 2, height / 2)
 
     def get_transform(self):
-        return (glm.translate(glm.vec3(-self.pan, 0))
-                * glm.scale(glm.vec3(self.zoom, self.zoom, 1)))
+        return (glm.scale(glm.vec3(self.zoom, self.zoom, 1)) *
+                glm.translate(glm.vec3(-self.pan, 0)))
 
     def get_viewport(self):
         return Rect(self.pan.x, self.pan.y, self.width / self.zoom, self.height / self.zoom)

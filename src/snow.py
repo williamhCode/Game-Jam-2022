@@ -47,7 +47,7 @@ class SnowGrid:
                     0, num_snow_types - 1), Box(Vec2d(x * self.CELL_SIZE, y * self.CELL_SIZE), 8))
 
     def update_snow(self, snowball: Snowball):
-        circle = snowball.circle_base
+        circle = snowball.shape
         pos: Vec2d = snowball.position
         min_x = int(math.floor((pos.x - circle.radius) * self.INV_CELL_SIZE))
         max_x = int(math.floor((pos.x + circle.radius) * self.INV_CELL_SIZE))
@@ -61,27 +61,9 @@ class SnowGrid:
                 tile = self.snow_tiles[x][y]
                 if tile.active and circle_box_collision(pos, circle.radius, tile.box):
                     tile.active = False
-                    snowball.increase_volume(100)
+                    snowball.change_volume(80)
 
     def draw(self, renderer: Renderer, camera: Camera2D):
-
-        """
-        var viewport = camera.GetViewport();
-        int xStart = (int)Math.Floor(viewport.X / TILESIZE);
-        int yStart = (int)Math.Floor(viewport.Y / TILESIZE);
-        int xEnd = (int)Math.Ceiling((viewport.X + viewport.Width) / TILESIZE);
-        int yEnd = (int)Math.Ceiling((viewport.Y + viewport.Height) / TILESIZE);
-
-        xStart = Math.Max(xStart, 0);
-        yStart = Math.Max(yStart, 0);
-        xEnd = Math.Min(xEnd, WIDTH);
-        yEnd = Math.Min(yEnd, HEIGHT);
-
-        for (int row = xStart; row < xEnd; row++)
-        {
-            for (int col = yStart; col < yEnd; col++)
-        """
-
         viewport = camera.get_viewport()
         x_start = int(math.floor(viewport.x / self.CELL_SIZE))
         y_start = int(math.floor(viewport.y / self.CELL_SIZE))
@@ -100,3 +82,4 @@ class SnowGrid:
                     curr_tex = self.snow_textures[curr_tile.tex_id]
                     pos = (x * self.CELL_SIZE, y * self.CELL_SIZE)
                     renderer.draw_texture(curr_tex, pos)
+

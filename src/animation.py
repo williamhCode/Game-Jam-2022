@@ -4,7 +4,7 @@ from pathlib import Path
 from enum import Enum
 
 
-class AnimatedSprite:
+class AnimSprite:
     
     def __init__(self, textures: list[Texture], frame_time, flipped=False):
         self.textures = textures
@@ -35,45 +35,57 @@ class AnimatedSprite:
 
 
 from copy import deepcopy
-class AnimationState:
+class AnimState:
 
     def __init__(self, identifiers: list[str]):
-        self.stateSprites: dict[str, AnimatedSprite] = {}
+        self.state_sprites: dict[str, AnimSprite] = {}
         self.states: dict[str, Enum] = {}
         for identifier in identifiers:
             self.states[identifier] = None
 
-        self.lastSprite: AnimatedSprite = None
-        self.currSprite: AnimatedSprite = None
+        self.last_sprite: AnimSprite = None
+        self.curr_sprite: AnimSprite = None
 
-    def add_sprite(self, sprite: AnimatedSprite, values: list[Enum]):
+        self.last_state: str = None
+        self.curr_state: str = None
+
+    def add(self, sprite: AnimSprite, values: list[Enum]):
         values = [str(v.value) for v in values]
         string = ','.join(values)
-        self.stateSprites[string] = sprite
+        self.state_sprites[string] = sprite
 
     def set_state(self, identifier: str, value: Enum):
         self.states[identifier] = value
+        self.last_state = self.curr_state
+        self.curr_state = list(self.states.values())[0]
+        if None not in self.states.values():
+            self._update_sprite()
 
     def get_state(self, identifier: str):
         return self.states[identifier]
 
-    def update(self, dt):
+    def _update_sprite(self):
         values = [str(v.value) for v in self.states.values()]
-        self.currSprite = self.stateSprites[','.join(values)]
+        self.curr_sprite = self.state_sprites[','.join(values)]
 
-        if (self.lastSprite != self.currSprite):
-            if (self.lastSprite != None):
-                self.currSprite.reset(self.lastSprite.time)
+        if self.last_sprite != None and self.last_sprite != self.curr_sprite:
+            if self.last_state != self.curr_state:
+                self.curr_sprite.reset()
+            else:
+                self.curr_sprite.reset(self.last_sprite.time)
+        
+    def update(self, dt):
+        self._update_sprite()
 
-        self.currSprite.update(dt)
+        self.curr_sprite.update(dt)
 
-        self.lastSprite = self.currSprite
+        self.last_sprite = self.curr_sprite
 
     def get_sprite(self):
-        return self.currSprite
+        return self.curr_sprite
 
     def get_copy(self):
-        copy = AnimationState(list(self.states.keys()))
+        copy = AnimState(deepcopy(list(self.states.keys())))
         copy.states = deepcopy(self.states)
-        copy.stateSprites = self.stateSprites
+        copy.state_sprites = deepcopy(self.state_sprites)
         return copy

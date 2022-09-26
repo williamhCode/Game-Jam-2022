@@ -263,6 +263,10 @@ cdef class Renderer:
         else:
             self.view_matrix = glm.mat4()
 
+        for shader in self.shaders:
+            shader.use()
+            shader.set_mat4('u_View', self.view_matrix)
+
         self._begin_quad_batch()
         self._begin_circle_batch()
         self._begin_rectangle_batch()
@@ -332,10 +336,6 @@ cdef class Renderer:
 
 
     def end(self):
-        for shader in self.shaders:
-            shader.use()
-            shader.set_mat4('u_View', self.view_matrix)
-
         self._end_quad_batch()
         self._end_circle_batch()
         self._end_rectangle_batch()

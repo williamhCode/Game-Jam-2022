@@ -4,21 +4,24 @@ from pymunk import Vec2d
 from enum import Enum
 
 from engine.render import Renderer
-from .animation import AnimatedSprite, AnimationState
+from .animation import AnimSprite, AnimState
 from . import funcs
+from .snowball import Snowball
+from .constants import CollType
 
 
 class IceCube(pymunk.Body):
-    RADIUS = 20
     MASS = 10
     SPEED = 40
+
+    WIDTH = 42
+    HEIGHT = 32
     
     STATE = "state"
     DIRECTION = "direction"
     
     class State(Enum):
-        IDLE = 1
-        WALKING = 2
+        WALKING = 1
 
     class Direction(Enum):
         UP = 1
@@ -26,45 +29,68 @@ class IceCube(pymunk.Body):
         RIGHT = 3
         LEFT = 4
 
-    circle: pymunk.Circle
+    shape: pymunk.Circle
     animation_state = None
+    position_offset = None
     
-    def __init__(self, pos: Vec2d):
-        super().__init__(self.MASS, float('inf'), body_type=pymunk.Body.KINEMATIC)
+    def __init__(self, space: pymunk.Space, pos: Vec2d, coll_value):
+        super().__init__(self.MASS, float('inf'), body_type=pymunk.Body.DYNAMIC)
         self.position = pos
-
-        self.circle = pymunk.Circle(self, self.RADIUS)
-        self.circle.friction = 0.5
+        self.shape = pymunk.Poly(self, funcs.generate_ellipse_points(self.WIDTH, self.HEIGHT, 20))
+        self.shape.friction = 0.5
+        space.add(self.shape, self)
+        self.shape.collision_type = CollType.ICE_CUBE.value + coll_value
 
         self.base_position = pos
         
         self.input = Vec2d.zero()
 
         if IceCube.animation_state == None:
-            back_sprites = AnimatedSprite(
+            back_sprites = AnimSprite(
                 funcs.load_textures("src/imgs/IceCubes", "Back", 8), 1 / 12)
-            front_sprites = AnimatedSprite(
+            front_sprites = AnimSprite(
                 funcs.load_textures("src/imgs/IceCubes", "Front", 8), 1 / 12)
             left_textures = funcs.load_textures("src/imgs/IceCubes", "Side", 8)
-            left_sprites = AnimatedSprite(left_textures, 1 / 12)
-            right_sprites = AnimatedSprite(left_textures, 1 / 12, flipped=True)
+            left_sprites = AnimSprite(left_textures, 1 / 12)
+            right_sprites = AnimSprite(left_textures, 1 / 12, flipped=True)
             
-            IceCube.animation_state = AnimationState((self.STATE, self.DIRECTION))
-            IceCube.animation_state.add_sprite(back_sprites, (self.State.WALKING, self.Direction.UP))
-            IceCube.animation_state.add_sprite(front_sprites, (self.State.WALKING, self.Direction.DOWN))
-            IceCube.animation_state.add_sprite(right_sprites, (self.State.WALKING, self.Direction.RIGHT))
-            IceCube.animation_state.add_sprite(left_sprites, (self.State.WALKING, self.Direction.LEFT))
+            IceCube.animation_state = AnimState((self.STATE, self.DIRECTION))
+            IceCube.animation_state.add(back_sprites, (self.State.WALKING, self.Direction.UP))
+            IceCube.animation_state.add(front_sprites, (self.State.WALKING, self.Direction.DOWN))
+            IceCube.animation_state.add(right_sprites, (self.State.WALKING, self.Direction.RIGHT))
+            IceCube.animation_state.add(left_sprites, (self.State.WALKING, self.Direction.LEFT))
 
-            IceCube.animation_state.set_state(self.STATE, self.State.WALKING)
-            IceCube.animation_state.set_state(self.DIRECTION, self.Direction.DOWN)
+            temp_sprite = front_sprites.textures[0]
+            IceCube.position_offset = Vec2d(temp_sprite.width / 2, 45)
         
         self.animation_state = IceCube.animation_state.get_copy()
 
-        temp_sprite = front_sprites.textures[0]
-        self.position_offset = Vec2d(temp_sprite.width / 2, 20)
+        self.animation_state.set_state(self.STATE, self.State.WALKING)
+        self.animation_state.set_state(self.DIRECTION, self.Direction.DOWN)
+
+        self.position_offset = IceCube.position_offset
 
         self.time = 0
         self.curr_direction = self.Direction.DOWN
+
+        self.is_dead = False
+
+        handler = space.add_wildcard_collision_handler(self.shape.collision_type)
+        handler.begin = self.on_collision
+    
+    def on_collision(self, arbiter: pymunk.Arbiter, space: pymunk.Space, data):
+        body = arbiter.shapes[1].body
+        if isinstance(body, Snowball):
+            body: Snowball
+            body.freeze()
+            self.is_dead = True
+            space.remove(self.shape, self)
+
+        return True
+
+    def kill(self, space):
+        space.remove(self.shape, self)
+        self.is_dead = True
 
     def update(self, dt):  
         if (self.time > random.random() * 2 + 4):
@@ -88,5 +114,6 @@ class IceCube(pymunk.Body):
         self.time += dt
         
     def draw(self, renderer: Renderer):
-        renderer.draw_circle((219, 241, 253), self.position, self.RADIUS)
+        # renderer.draw_lines(
+        #     (200, 20, 20), [v + self.position for v in self.shape.get_vertices()], 3)
         self.animation_state.get_sprite().draw(renderer, self.position, offset=-self.position_offset)
