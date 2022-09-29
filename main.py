@@ -40,7 +40,7 @@ def reset_level():
     icecubes = []
     for x in range(15):
         pos = (random.randint(0, 3840), random.randint(0, 2160))
-        icecubes.append(IceCube(space, pos, x))
+        icecubes.append(IceCube(space, pos))
 
     holes = [
         Hole(space, (400, 1200)),

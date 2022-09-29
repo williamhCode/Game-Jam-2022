@@ -33,13 +33,13 @@ class IceCube(pymunk.Body):
     animation_state = None
     position_offset = None
     
-    def __init__(self, space: pymunk.Space, pos: Vec2d, coll_value):
+    def __init__(self, space: pymunk.Space, pos: Vec2d):
         super().__init__(self.MASS, float('inf'), body_type=pymunk.Body.DYNAMIC)
         self.position = pos
         self.shape = pymunk.Poly(self, funcs.generate_ellipse_points(self.WIDTH, self.HEIGHT, 20))
         self.shape.friction = 0.5
         space.add(self.shape, self)
-        self.shape.collision_type = CollType.ICE_CUBE.value + coll_value
+        self.shape.collision_type = CollType.ICE_CUBE.value
 
         self.base_position = pos
         
@@ -75,16 +75,17 @@ class IceCube(pymunk.Body):
 
         self.is_dead = False
 
-        handler = space.add_wildcard_collision_handler(self.shape.collision_type)
+        # handler = space.add_wildcard_collision_handler(self.shape.collision_type)
+        handler = space.add_collision_handler(self.shape.collision_type, CollType.SNOWBALL.value)
         handler.begin = self.on_collision
     
     def on_collision(self, arbiter: pymunk.Arbiter, space: pymunk.Space, data):
+        _self = arbiter.shapes[0].body
         body = arbiter.shapes[1].body
-        if isinstance(body, Snowball):
-            body: Snowball
-            body.freeze()
-            self.is_dead = True
-            space.remove(self.shape, self)
+        body: Snowball
+        body.freeze()
+        _self.is_dead = True
+        space.remove(_self.shape, _self)
 
         return True
 

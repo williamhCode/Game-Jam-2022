@@ -32,8 +32,10 @@ class Hole(pymunk.Body):
         handler.begin = self.on_collision
 
     def on_collision(self, arbiter: pymunk.Arbiter, space: pymunk.Space, data):
-        body = arbiter.shapes[1].body
-        body.kill(space)
+        shape = arbiter.shapes[1]
+        if shape.collision_type != CollType.PLAYER_PUNT.value:
+            body = shape.body
+            body.kill(space)
 
         return True
 
