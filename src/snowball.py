@@ -96,8 +96,8 @@ class Snowball(pymunk.Body):
             self.velocity -= self.velocity * 0.9 * dt
 
     def draw(self, renderer: Renderer):
-        renderer.draw_circle(
-            (20, 20, 20, 100), self.position, self.shape.radius, 0)
+        # renderer.draw_circle(
+        #     (20, 20, 20, 100), self.position, self.shape.radius, 0)
 
         ball_pos = self.position - Vec2d(self.main_sprite.width / 2, self.main_sprite.height * 0.32)
         if self.is_frozen:

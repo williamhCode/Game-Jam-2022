@@ -75,7 +75,7 @@ cdef class Renderer:
         list shaders
 
         # matrices
-        object view_matrix
+        readonly object view_matrix
 
 
     def __init__(self):
